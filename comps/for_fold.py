@@ -1,18 +1,27 @@
 from comps.comprehension_builder import ComprehensionBuilder
 from comps.operations import AddAccumulator, AddIterable, SetFilter, SetResult, SetBody
-from typing import Callable, Any, Iterable
+from typing import Callable, Any, Iterable, Tuple
 
 
 def for_fold(
-    accumulators: list[tuple[str, Any]],
-    iterables: list[tuple[str, Iterable]],
-    body: Callable[..., dict],
-    *,
-    when: Callable[..., bool] = lambda **kwargs: True,
-    result: Callable[..., Any] = None
+    accumulators: list[Tuple[str, Any]],
+    iterables: list[Tuple[str, Iterable]],
+    body: Tuple[Callable[..., Any], ...],
+    result: str = None,
+    when: Callable[..., bool] = lambda **kwargs: True
 ) -> Any:
     """
-    Simplified for_fold function using ComprehensionBuilder.
+    Simplified for_fold function using ComprehensionBuilder with filtering.
+
+    :param accumulators: List of tuples (name, initial_value) for accumulators.
+    :param iterables: List of tuples (name, iterable) for iteration.
+    :param body: Tuple of functions, each corresponding to an accumulator.
+                 Each function should return the updated value for its accumulator.
+    :param result: The name of the accumulator to return as the final result.
+                   If None, returns all accumulators as a dictionary.
+    :param when: A filter function that takes keyword arguments and returns a boolean.
+                 If False, the current iteration is skipped.
+    :return: The result as specified by the 'result' parameter.
     """
     builder = ComprehensionBuilder()
 
@@ -24,88 +33,96 @@ def for_fold(
     for name, iterable in iterables:
         builder >> AddIterable(name, iterable)
 
-    # Set the body, filter, and result
-    builder >> SetBody(body)
-    builder >> SetFilter(when)
+    # Add body functions
+    for body_fn in body:
+        builder >> SetBody(body_fn)
 
+    # Set the filter
+    if when:
+        builder >> SetFilter(when)
+
+    # Set the result
     if result:
         builder >> SetResult(result)
 
     return builder.run()
 
-if __name__ == '__main__':
-    # Example 1: One Accumulator over One Iterable
+
+# Example usage in the if __name__ == "__main__" block
+if __name__ == "__main__":
     numbers = [1, 2, 3, 4, 5]
 
-    def body(sum, n):
-        return {"sum": sum + n}
+    # Example 1: One Accumulator over One Iterable
+    def body_sum(sum, n):
+        return sum + n
 
-    result = for_fold(
+    result1 = for_fold(
         accumulators=[("sum", 0)],
         iterables=[("n", numbers)],
-        body=body,
-        result=lambda **kwargs: kwargs["sum"]
+        body=(body_sum,),
+        result="sum"
     )
-    print(f"Example 1 Result: {result}")  # Output: Example 1 Result: 15
-
+    print(f"Example 1 Result: {result1}")  # Output: Example 1 Result: 15
 
     # Example 2: Two Accumulators over Two Iterables
     list1 = [1, 2, 3]
     list2 = [10, 20, 30]
 
-    def body(sum1, sum2, a, b):
-        return {"sum1": sum1 + a, "sum2": sum2 + b}
+    def body_sum1(sum1, sum2, a, b):
+        return sum1 + a
 
-    result = for_fold(
+    def body_sum2(sum1, sum2, a, b):
+        return sum2 + b
+
+    result2 = for_fold(
         accumulators=[("sum1", 0), ("sum2", 0)],
         iterables=[("a", list1), ("b", list2)],
-        body=body,
-        result=lambda **kwargs: (kwargs["sum1"], kwargs["sum2"])
+        body=(body_sum1, body_sum2),
+        result="sum2"
     )
-    print(f"Example 2 Result: {result}")  # Output: Example 2 Result: (6, 60)
-
+    print(f"Example 2 Result: {result2}")  # Output: Example 2 Result: 60
 
     # Example 3: Filter with `when` Clause (Sum only even numbers)
-    def body(sum, n):
-        return {"sum": sum + n}
+    def body_sum_even(sum, n):
+        return sum + n
 
-    def when(**kwargs):
-        return kwargs["n"] % 2 == 0
+    def when_even(**kwargs):
+        return kwargs["n"] % 2 == 0  # Include only even numbers
 
-    result = for_fold(
+    result3 = for_fold(
         accumulators=[("sum", 0)],
         iterables=[("n", numbers)],
-        body=body,
-        when=when,
-        result=lambda **kwargs: kwargs["sum"]
+        body=(body_sum_even,),
+        result="sum",
+        when=when_even
     )
-    print(f"Example 3 Result: {result}")  # Output: Example 3 Result: 6
-
+    print(f"Example 3 Result: {result3}")  # Output: Example 3 Result: 6
 
     # Example 4: Custom Result with Sum and Product
-    numbers = [1, 2, 3, 4]
+    numbers_prod = [1, 2, 3, 4]
 
-    def body(sum, product, n):
-        return {"sum": sum + n, "product": product * n}
+    def body_sum_prod_sum(sum, product, n):
+        return sum + n
+
+    def body_sum_prod_prod(sum, product, n):
+        return product * n
 
     def custom_result(**kwargs):
         return f"Sum: {kwargs['sum']}, Product: {kwargs['product']}"
 
-    result = for_fold(
+    result4 = for_fold(
         accumulators=[("sum", 0), ("product", 1)],
-        iterables=[("n", numbers)],
-        body=body,
-        result=custom_result
+        iterables=[("n", numbers_prod)],
+        body=(body_sum_prod_sum, body_sum_prod_prod),
+        result="product"  # Alternatively, set to "sum" or any other accumulator
     )
-    print(f"Example 4 Result: {result}")  # Output: Example 4 Result: Sum: 10, Product: 2
+    print(f"Example 4 Result: {result4}")  # Output: Example 4 Result: 24
 
-
-    # notes
-    # we should push away this result fn stuff to search the kwargs dict
-    # and to find the name. A simple results should be a lambda that takes
-    # some variables that exist above and returns something with them.
-    # we should push the inspect call to comprehension_builder
-    for_fold([("sum", 0), ("prod", 1)],
-             [("n", numbers)],
-             lambda sum, prod, n: {"sum": sum + n, "prod": prod * n},
-             result=kwargs["prod"])
+    # Example 5: Custom Result Function
+    result5 = for_fold(
+        accumulators=[("sum", 0), ("product", 1)],
+        iterables=[("n", numbers_prod)],
+        body=(body_sum_prod_sum, body_sum_prod_prod),
+        result="product"  # Or set a custom result function if needed
+    )
+    print(f"Example 5 Result: {result5}")  # Output: Example 5 Result: 24

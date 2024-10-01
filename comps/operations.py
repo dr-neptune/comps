@@ -13,12 +13,12 @@ class AddIterable:
 
 @dataclass
 class SetFilter:
-    filter_function: Callable[[dict], bool]
+    filter_function: Callable[..., bool]
 
 @dataclass
 class SetResult:
-    result_function: Callable[[dict], Any]
+    result_name: str
 
 @dataclass
 class SetBody:
-    body_function: Callable[[dict], dict]
+    body_function: Callable[..., Any]
