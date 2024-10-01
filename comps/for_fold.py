@@ -1,82 +1,100 @@
-from cytoolz import reduce, sliding_window
-from typing import Any, Callable, Dict, List, Tuple
+from comps.comprehension_builder import ComprehensionBuilder
+from comps.operations import AddAccumulator, AddIterable, SetFilter, SetResult, SetBody
+from typing import Callable, Any, Iterable
+
 
 def for_fold(
-    accumulators: List[Tuple[str, Any]],
-    iterables: List[Tuple[str, Any]],
-    body: Callable,
+    accumulators: list[tuple[str, Any]],
+    iterables: list[tuple[str, Iterable]],
+    body: Callable[..., dict],
     *,
-    when: Callable[[Dict[str, Any]], bool] = lambda env: True,
-    result: Callable[[Dict[str, Any]], Any] = lambda env: [env[name] for name, _ in accumulators]
+    when: Callable[..., bool] = lambda **kwargs: True,
+    result: Callable[..., Any] = None
 ) -> Any:
     """
-    A Python implementation of Racket's for/fold.
-
-    :param accumulators: List of tuples (name, initial_value) for accumulators.
-    :param iterables: List of tuples (name, iterable) for iteration.
-    :param body: Function that updates accumulators.
-    :param when: Optional filter function.
-    :param result: Function to compute the final result.
-    :return: The result computed by the result function.
+    Simplified for_fold function using ComprehensionBuilder.
     """
-    # Initialize the environment with accumulators
-    env = {name: value for name, value in accumulators}
-    # Prepare the iterators
-    iterators = [iterable for _, iterable in iterables]
-    names = [name for name, _ in iterables]
-    # Zip the iterators to loop over them simultaneously
-    for values in zip(*iterators):
-        # Update the environment with the current values
-        env.update(dict(zip(names, values)))
-        # Apply the filter
-        if not when(env):
-            continue
-        # Update the accumulators using the body function
-        updates = body(env)
-        env.update(updates)
-    # Compute the final result
-    return result(env)
+    builder = ComprehensionBuilder()
 
+    # Add accumulators
+    for name, value in accumulators:
+        builder >> AddAccumulator(name, value)
+
+    # Add iterables
+    for name, iterable in iterables:
+        builder >> AddIterable(name, iterable)
+
+    # Set the body, filter, and result
+    builder >> SetBody(body)
+    builder >> SetFilter(when)
+
+    if result:
+        builder >> SetResult(result)
+
+    return builder.run()
 
 if __name__ == '__main__':
-    # Example 1: One accumulator over one iterable
+    # Example 1: One Accumulator over One Iterable
     numbers = [1, 2, 3, 4, 5]
+
+    def body(sum, n):
+        return {"sum": sum + n}
+
     result = for_fold(
         accumulators=[("sum", 0)],
         iterables=[("n", numbers)],
-        body=lambda env: {"sum": env["sum"] + env["n"]},
-        result=lambda env: env["sum"]
+        body=body,
+        result=lambda **kwargs: kwargs["sum"]
     )
-    print(f"Example 1 Result: {result}")
+    print(f"Example 1 Result: {result}")  # Output: Example 1 Result: 15
 
-    # Example 2: Two accumulators over two iterables
+
+    # Example 2: Two Accumulators over Two Iterables
     list1 = [1, 2, 3]
     list2 = [10, 20, 30]
+
+    def body(sum1, sum2, a, b):
+        return {"sum1": sum1 + a, "sum2": sum2 + b}
+
     result = for_fold(
         accumulators=[("sum1", 0), ("sum2", 0)],
         iterables=[("a", list1), ("b", list2)],
-        body=lambda env: {"sum1": env["sum1"] + env["a"], "sum2": env["sum2"] + env["b"]},
-        result=lambda env: (env["sum1"], env["sum2"])
+        body=body,
+        result=lambda **kwargs: (kwargs["sum1"], kwargs["sum2"])
     )
-    print(f"Example 2 Result: {result}")  # Should print (6, 60)
+    print(f"Example 2 Result: {result}")  # Output: Example 2 Result: (6, 60)
 
-    # Example 3: Filter with 'when' (only sum even numbers)
-    numbers = [1, 2, 3, 4, 5]
+
+    # Example 3: Filter with `when` Clause (Sum only even numbers)
+    def body(sum, n):
+        return {"sum": sum + n}
+
+    def when(**kwargs):
+        return kwargs["n"] % 2 == 0
+
     result = for_fold(
         accumulators=[("sum", 0)],
         iterables=[("n", numbers)],
-        body=lambda env: {"sum": env["sum"] + env["n"]},
-        when=lambda env: env["n"] % 2 == 0,  # Filter to only include even numbers
-        result=lambda env: env["sum"]
+        body=body,
+        when=when,
+        result=lambda **kwargs: kwargs["sum"]
     )
-    print(f"Example 3 Result: {result}")  # Should print 6 (2 + 4)
+    print(f"Example 3 Result: {result}")  # Output: Example 3 Result: 6
 
-    # Example 4: Custom result (sum and product of numbers)
+
+    # Example 4: Custom Result with Sum and Product
     numbers = [1, 2, 3, 4]
+
+    def body(sum, product, n):
+        return {"sum": sum + n, "product": product * n}
+
+    def custom_result(**kwargs):
+        return f"Sum: {kwargs['sum']}, Product: {kwargs['product']}"
+
     result = for_fold(
         accumulators=[("sum", 0), ("product", 1)],
         iterables=[("n", numbers)],
-        body=lambda env: {"sum": env["sum"] + env["n"], "product": env["product"] * env["n"]},
-        result=lambda env: f"Sum: {env['sum']}, Product: {env['product']}"
+        body=body,
+        result=custom_result
     )
-    print(f"Example 4 Result: {result}")  # Should print "Sum: 10, Product: 24"
+    print(f"Example 4 Result: {result}")  # Output: Example 4 Result: Sum: 10, Product: 2
