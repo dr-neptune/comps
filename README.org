@@ -13,10 +13,10 @@ This project leverages Python 3.11+ for the latest language features
 programming utilities. ⚡
 
 ** 🎯 Features
-- 🔄 **Multiple accumulators** over multiple iterables, just like in Racket!
-- 🔍 **Optional filtering** using a *when* clause to add logic to the loop.
-- 🎨 **Flexible result expressions** via a *result* clause, so you can control the final output.
-- 📝 **Typed** for clarity, taking advantage of Python's powerful typing system.
+- 🔄 *Multiple accumulators* over multiple iterables, just like in Racket!
+- 🔍 *Optional filtering* using a *when* clause to add logic to the loop.
+- 🎨 *Flexible result expressions via a *result* clause, so you can control the final output.
+- 📝 *Typed* for clarity, taking advantage of Python's powerful typing system.
 
 ** 🛠️ Example Usage
 
