@@ -1,20 +1,23 @@
-* comps: Implementing Racket's for comprehensions in Python
+* 🍂 comps: Implementing Racket's for comprehensions in Python 🐍
 
-** Overview
+** 🌟 Overview
 The goal of this project is to implement a Python version of Racket's
-*for* comprehensions. The *for_fold* function simulates the behavior
-of Racket's *for/fold*, including handling multiple accumulators,
-applying filters, and producing custom results.
+*for* comprehensions. The *for_fold* function simulates the behavior of
+Racket's *for/fold*, including handling multiple accumulators, applying
+filters, and producing custom results. It's all about bringing the
+expressive power of Racket into Python, while keeping things simple
+and elegant. ✨
 
-This project uses Python 3.11+ and cytoolz for its functional
-programming utilities.
+This project leverages Python 3.11+ for the latest language features
+(like structural pattern matching) and uses cytoolz for its functional
+programming utilities. ⚡
 
-** Features
-- Multiple accumulators over multiple iterables.
-- Optional filtering using a *when* clause.
-- Flexible result expressions via a *result* clause.
-- Typed, using Python's typing system for clarity.
+** 🎯 Features
+- 🔄 **Multiple accumulators** over multiple iterables, just like in Racket!
+- 🔍 **Optional filtering** using a *when* clause to add logic to the loop.
+- 🎨 **Flexible result expressions** via a *result* clause, so you can control the final output.
+- 📝 **Typed** for clarity, taking advantage of Python's powerful typing system.
 
-** Example Usage
+** 🛠️ Example Usage
 
-Coming soon!
+🚧 *Coming soon!* 🚧
