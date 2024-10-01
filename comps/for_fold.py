@@ -98,3 +98,14 @@ if __name__ == '__main__':
         result=custom_result
     )
     print(f"Example 4 Result: {result}")  # Output: Example 4 Result: Sum: 10, Product: 2
+
+
+    # notes
+    # we should push away this result fn stuff to search the kwargs dict
+    # and to find the name. A simple results should be a lambda that takes
+    # some variables that exist above and returns something with them.
+    # we should push the inspect call to comprehension_builder
+    for_fold([("sum", 0), ("prod", 1)],
+             [("n", numbers)],
+             lambda sum, prod, n: {"sum": sum + n, "prod": prod * n},
+             result=kwargs["prod"])
